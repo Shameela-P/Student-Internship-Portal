@@ -1,9 +1,13 @@
 import { requireRole } from '$lib/auth';
-import { getDb } from '$lib/db';
+import { getCollection } from '$lib/db';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	const sessionUser = requireRole(cookies, ['student']);
-	const db = getDb();
+	const db = {
+		students: await getCollection('students'),
+		notifications: await getCollection('notifications'),
+		messages: await getCollection('messages')
+	};
 	const student = db.students.find(s => s.id === sessionUser.id);
 	
 	if (!student) {

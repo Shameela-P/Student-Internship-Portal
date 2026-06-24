@@ -1,10 +1,18 @@
-import { getDb, saveDb, logAction } from '$lib/db';
+import { logAction, getCollection, updateEntireDatabase } from '$lib/db';
 import { requireRole } from '$lib/auth';
 import { fail } from '@sveltejs/kit';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	const sessionUser = requireRole(cookies, ['admin']);
-	const db = getDb();
+	const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications'),
+		notifications: await getCollection('notifications'),
+		emailTemplates: await getCollection('emailTemplates'),
+		systemLogs: await getCollection('systemLogs')
+	};
 
 	const totalStudents = db.students.length;
 	const totalCompanies = db.companies.length;
@@ -59,7 +67,15 @@ export const actions = {
 			return fail(400, { success: false, error: 'Company reference ID is missing' });
 		}
 
-		const db = getDb();
+		const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications'),
+		notifications: await getCollection('notifications'),
+		emailTemplates: await getCollection('emailTemplates'),
+		systemLogs: await getCollection('systemLogs')
+	};
 		const companyIndex = db.companies.findIndex(c => c.id === companyId);
 		if (companyIndex === -1) {
 			return fail(404, { success: false, error: 'Company profile not found' });
@@ -86,7 +102,7 @@ export const actions = {
 			read: false
 		});
 
-		saveDb(db);
+		await updateEntireDatabase(db);
 		logAction('ADMIN_APPROVE_COMPANY', `Administrator approved company "${db.companies[companyIndex].companyName}" (ID: ${companyId}).`);
 
 		return { success: true };
@@ -101,7 +117,15 @@ export const actions = {
 			return fail(400, { success: false, error: 'Company reference ID is missing' });
 		}
 
-		const db = getDb();
+		const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications'),
+		notifications: await getCollection('notifications'),
+		emailTemplates: await getCollection('emailTemplates'),
+		systemLogs: await getCollection('systemLogs')
+	};
 		const companyIndex = db.companies.findIndex(c => c.id === companyId);
 		if (companyIndex === -1) {
 			return fail(404, { success: false, error: 'Company profile not found' });
@@ -123,7 +147,7 @@ export const actions = {
 			read: false
 		});
 
-		saveDb(db);
+		await updateEntireDatabase(db);
 		logAction('ADMIN_REJECT_COMPANY', `Administrator rejected registration for company "${compName}" (ID: ${companyId}).`);
 
 		return { success: true };
@@ -135,14 +159,22 @@ export const actions = {
 		const companyId = formData.get('companyId')?.toString();
 		if (!companyId) return fail(400, { success: false, error: 'Missing ID' });
 
-		const db = getDb();
+		const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications'),
+		notifications: await getCollection('notifications'),
+		emailTemplates: await getCollection('emailTemplates'),
+		systemLogs: await getCollection('systemLogs')
+	};
 		const companyIndex = db.companies.findIndex(c => c.id === companyId);
 		if (companyIndex === -1) return fail(404, { success: false, error: 'Not found' });
 
 		db.companies[companyIndex].status = 'Rejected';
 		db.companies[companyIndex].isSuspended = true;
 
-		saveDb(db);
+		await updateEntireDatabase(db);
 		logAction('ADMIN_REMOVE_FAKE_COMPANY', `Administrator suspended fake company "${db.companies[companyIndex].companyName}".`);
 		return { success: true };
 	},
@@ -155,7 +187,15 @@ export const actions = {
 		
 		if (!companyId) return fail(400, { success: false, error: 'Missing ID' });
 
-		const db = getDb();
+		const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications'),
+		notifications: await getCollection('notifications'),
+		emailTemplates: await getCollection('emailTemplates'),
+		systemLogs: await getCollection('systemLogs')
+	};
 		const company = db.companies.find(c => c.id === companyId);
 		if (!company) return fail(404, { success: false, error: 'Not found' });
 
@@ -169,7 +209,7 @@ export const actions = {
 			read: false
 		});
 
-		saveDb(db);
+		await updateEntireDatabase(db);
 		logAction('ADMIN_SEND_WARNING', `Administrator sent warning to company "${company.companyName}".`);
 		return { success: true };
 	}

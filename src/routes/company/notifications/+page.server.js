@@ -1,9 +1,12 @@
-import { getDb, saveDb } from '$lib/db';
+import { getCollection, updateEntireDatabase } from '$lib/db';
 import { requireRole } from '$lib/auth';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	const sessionUser = requireRole(cookies, ['company']);
-	const db = getDb();
+	const db = {
+		companies: await getCollection('companies'),
+		notifications: await getCollection('notifications')
+	};
 	const company = db.companies.find(c => c.id === sessionUser.id);
 
 	// Load notifications matching company email
@@ -21,7 +24,7 @@ export function load({ cookies }) {
 	});
 
 	if (changed) {
-		saveDb(db);
+		await updateEntireDatabase(db);
 	}
 
 	return {

@@ -1,10 +1,10 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { getDb, saveDb, logAction } from '$lib/db';
+import { logAction, getCollection, updateEntireDatabase } from '$lib/db';
 import { hashPassword, createToken } from '$lib/auth';
 import fs from 'fs';
 import path from 'path';
 
-export function load({ url }) {
+export async function load({ url }) {
 	const role = url.searchParams.get('role') || 'student';
 	return {
 		role
@@ -34,7 +34,13 @@ export const actions = {
 			return fail(400, { success: false, error: 'Please fill out all required student profile fields' });
 		}
 
-		const db = getDb();
+		const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		admins: await getCollection('admins'),
+		notifications: await getCollection('notifications'),
+		emailTemplates: await getCollection('emailTemplates')
+	};
 		
 		// Check duplicate email
 		const emailUsed = db.students.some(s => s.email.toLowerCase() === email) || 
@@ -111,7 +117,7 @@ export const actions = {
 			read: false
 		});
 
-		saveDb(db);
+		await updateEntireDatabase(db);
 		logAction('STUDENT_REGISTER', `New student ${fullName} (${email}) registered.`);
 
 		// Log in automatically after registration
@@ -144,7 +150,13 @@ export const actions = {
 			return fail(400, { success: false, error: 'Please fill out all required company profile fields' });
 		}
 
-		const db = getDb();
+		const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		admins: await getCollection('admins'),
+		notifications: await getCollection('notifications'),
+		emailTemplates: await getCollection('emailTemplates')
+	};
 
 		const emailUsed = db.students.some(s => s.email.toLowerCase() === companyEmail) || 
 		                  db.companies.some(c => c.companyEmail.toLowerCase() === companyEmail) ||
@@ -192,7 +204,7 @@ export const actions = {
 			read: false
 		});
 
-		saveDb(db);
+		await updateEntireDatabase(db);
 		logAction('COMPANY_REGISTER', `New company ${companyName} (${companyEmail}) submitted for approval.`);
 
 		// Log in automatically after registration

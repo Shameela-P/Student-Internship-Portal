@@ -1,12 +1,16 @@
-import { getDb, saveDb } from '$lib/db';
+import { getCollection, updateEntireDatabase } from '$lib/db';
 import { requireRole } from '$lib/auth';
 import { fail } from '@sveltejs/kit';
 import fs from 'fs';
 import path from 'path';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	const sessionUser = requireRole(cookies, ['admin']);
-	const db = getDb();
+	const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		messages: await getCollection('messages')
+	};
 
 	if (!db.messages) {
 		db.messages = [];
@@ -29,7 +33,7 @@ export function load({ cookies }) {
 		}
 	});
 	if (dbChanged) {
-		saveDb(db);
+		await updateEntireDatabase(db);
 	}
 
 	// Contacts list: All approved companies + all non-blocked students
@@ -61,7 +65,11 @@ export function load({ cookies }) {
 export const actions = {
 	sendMessage: async ({ request, cookies }) => {
 		const sessionUser = requireRole(cookies, ['admin']);
-		const db = getDb();
+		const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		messages: await getCollection('messages')
+	};
 
 		const formData = await request.formData();
 		const recipientEmail = formData.get('recipientEmail')?.toString().trim();
@@ -117,7 +125,7 @@ export const actions = {
 		};
 
 		db.messages.push(newMessage);
-		saveDb(db);
+		await updateEntireDatabase(db);
 
 		return { success: true };
 	}

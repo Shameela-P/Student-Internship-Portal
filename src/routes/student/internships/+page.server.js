@@ -1,10 +1,17 @@
-import { getDb, saveDb, logAction, DOMAINS } from '$lib/db';
+import { logAction, DOMAINS, getCollection, updateEntireDatabase } from '$lib/db';
 import { requireRole } from '$lib/auth';
 import { fail } from '@sveltejs/kit';
 
-export function load({ cookies, url }) {
+export async function load({ cookies, url }) {
 	const sessionUser = requireRole(cookies, ['student']);
-	const db = getDb();
+	const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications'),
+		notifications: await getCollection('notifications'),
+		emailTemplates: await getCollection('emailTemplates')
+	};
 	const student = db.students.find(s => s.id === sessionUser.id);
 
 	// Get filter parameters from URL query string
@@ -150,7 +157,14 @@ export const actions = {
 			return fail(400, { success: false, error: 'Internship reference is missing' });
 		}
 
-		const db = getDb();
+		const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications'),
+		notifications: await getCollection('notifications'),
+		emailTemplates: await getCollection('emailTemplates')
+	};
 		const student = db.students.find(s => s.id === sessionUser.id);
 		const internship = db.internships.find(i => i.id === internshipId);
 		
@@ -222,7 +236,7 @@ export const actions = {
 			read: false
 		});
 
-		saveDb(db);
+		await updateEntireDatabase(db);
 		logAction('APPLICATION_SUBMIT', `Student ${student.fullName} applied for internship ${internship.title} (ID: ${internship.id}).`);
 
 		return { success: true };

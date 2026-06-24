@@ -1,12 +1,14 @@
-import { getDb, saveDb, logAction } from '$lib/db';
+import { logAction, getCollection, updateEntireDatabase } from '$lib/db';
 import { requireRole } from '$lib/auth';
 import { fail } from '@sveltejs/kit';
 import fs from 'fs';
 import path from 'path';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	const sessionUser = requireRole(cookies, ['student']);
-	const db = getDb();
+	const db = {
+		students: await getCollection('students')
+	};
 	const student = db.students.find(s => s.id === sessionUser.id);
 	return {
 		student
@@ -34,7 +36,9 @@ export const actions = {
 			return fail(400, { success: false, error: 'All fields marked with an asterisk are required' });
 		}
 
-		const db = getDb();
+		const db = {
+		students: await getCollection('students')
+	};
 		const studentIndex = db.students.findIndex(s => s.id === sessionUser.id);
 		if (studentIndex === -1) {
 			return fail(404, { success: false, error: 'Student profile not found' });
@@ -58,7 +62,7 @@ export const actions = {
 			bio
 		};
 
-		saveDb(db);
+		await updateEntireDatabase(db);
 		logAction('STUDENT_UPDATE_PROFILE', `Student ${fullName} (${sessionUser.email}) updated profile details.`);
 
 		return { success: true, message: 'Profile details saved successfully' };
@@ -73,7 +77,9 @@ export const actions = {
 			return fail(400, { success: false, error: 'Please select a valid PDF/DOC resume file' });
 		}
 
-		const db = getDb();
+		const db = {
+		students: await getCollection('students')
+	};
 		const studentIndex = db.students.findIndex(s => s.id === sessionUser.id);
 		if (studentIndex === -1) {
 			return fail(404, { success: false, error: 'Student profile not found' });
@@ -96,7 +102,7 @@ export const actions = {
 			}
 
 			db.students[studentIndex].resumePath = filename;
-			saveDb(db);
+			await updateEntireDatabase(db);
 			
 			logAction('STUDENT_UPDATE_RESUME', `Student ${db.students[studentIndex].fullName} uploaded a new resume.`);
 			return { success: true, message: 'Resume file updated successfully' };

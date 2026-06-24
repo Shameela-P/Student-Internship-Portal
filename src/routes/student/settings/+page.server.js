@@ -1,10 +1,12 @@
-import { getDb, saveDb, logAction } from '$lib/db';
+import { logAction, getCollection, updateEntireDatabase } from '$lib/db';
 import { requireRole, verifyPassword, hashPassword } from '$lib/auth';
 import { fail } from '@sveltejs/kit';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	const sessionUser = requireRole(cookies, ['student']);
-	const db = getDb();
+	const db = {
+		students: await getCollection('students')
+	};
 	const student = db.students.find(s => s.id === sessionUser.id);
 	
 	// Create settings object if not exists in DB or return defaults
@@ -43,7 +45,9 @@ export const actions = {
 			return fail(400, { success: false, error: 'Password must be at least 6 characters long' });
 		}
 
-		const db = getDb();
+		const db = {
+		students: await getCollection('students')
+	};
 		const studentIndex = db.students.findIndex(s => s.id === sessionUser.id);
 		if (studentIndex === -1) {
 			return fail(404, { success: false, error: 'Student account not found' });
@@ -57,7 +61,7 @@ export const actions = {
 
 		// Update password
 		db.students[studentIndex].password = hashPassword(newPassword);
-		saveDb(db);
+		await updateEntireDatabase(db);
 		logAction('STUDENT_CHANGE_PASSWORD', `Student ${student.fullName} updated their account security credentials.`);
 
 		return { success: true, message: 'Password updated successfully' };
@@ -73,7 +77,9 @@ export const actions = {
 		const profileVisibility = formData.get('profileVisibility')?.toString() || 'public';
 		const twoFactorAuth = formData.get('twoFactorAuth') === 'true';
 
-		const db = getDb();
+		const db = {
+		students: await getCollection('students')
+	};
 		const studentIndex = db.students.findIndex(s => s.id === sessionUser.id);
 		if (studentIndex === -1) {
 			return fail(404, { success: false, error: 'Student account not found' });
@@ -88,7 +94,7 @@ export const actions = {
 			twoFactorAuth
 		};
 
-		saveDb(db);
+		await updateEntireDatabase(db);
 		logAction('STUDENT_UPDATE_SETTINGS', `Student ${db.students[studentIndex].fullName} updated their settings and preferences.`);
 
 		return { success: true, message: 'Settings and privacy controls updated successfully' };

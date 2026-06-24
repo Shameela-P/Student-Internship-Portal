@@ -1,9 +1,11 @@
-import { getDb } from '$lib/db';
+import { getCollection } from '$lib/db';
 import { requireRole } from '$lib/auth';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	requireRole(cookies, ['admin']);
-	const db = getDb();
+	const db = {
+		students: await getCollection('students')
+	};
 	
 	const students = db.students.map(s => {
 		// Calculate stats if needed, or just pass data

@@ -1,9 +1,14 @@
-import { getDb } from '$lib/db';
+import { getCollection } from '$lib/db';
 import { requireRole } from '$lib/auth';
 
-export function load({ cookies, url }) {
+export async function load({ cookies, url }) {
 	const sessionUser = requireRole(cookies, ['student']);
-	const db = getDb();
+	const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications')
+	};
 	const student = db.students.find(s => s.id === sessionUser.id);
 	
 	const hash = url.searchParams.get('hash');

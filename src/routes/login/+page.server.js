@@ -1,9 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { getDb, logAction } from '$lib/db';
+import { logAction, getCollection } from '$lib/db';
 import { verifyPassword, createToken, createRefreshToken, verifyToken } from '$lib/auth';
 import { dev } from '$app/environment';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	// If already logged in, redirect them away from login page to dashboard
 	const sessionCookie = cookies.get('nexora_session');
 	if (sessionCookie) {
@@ -26,7 +26,11 @@ export const actions = {
 			return fail(400, { success: false, error: 'All fields are required' });
 		}
 
-		const db = getDb();
+		const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		admins: await getCollection('admins')
+	};
 
 		const setAuthCookies = (payload) => {
 			const token = createToken(payload);

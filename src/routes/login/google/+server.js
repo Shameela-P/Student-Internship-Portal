@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { getDb, saveDb, logAction } from '$lib/db';
+import { getCollection, updateEntireDatabase, logAction } from '$lib/db';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-for-jwt-signing';
@@ -14,7 +14,11 @@ export async function POST({ request, cookies }) {
 			return json({ error: 'Missing required Google Auth payload fields.' }, { status: 400 });
 		}
 
-		const db = getDb();
+		const db = {
+			students: await getCollection('students'),
+			companies: await getCollection('companies'),
+			admins: await getCollection('admins')
+		};
 		let user = null;
 		let redirectPath = '/';
 
@@ -37,7 +41,7 @@ export async function POST({ request, cookies }) {
 			// Optional: Update photoURL if changed
 			if (photoURL && existingStudent.profilePhoto !== photoURL) {
 				existingStudent.profilePhoto = photoURL;
-				saveDb(db);
+				await updateEntireDatabase(db);
 			}
 		} else if (existingCompany) {
 			if (existingCompany.isSuspended) {
@@ -67,7 +71,7 @@ export async function POST({ request, cookies }) {
 					createdAt: new Date().toISOString()
 				};
 				db.students.push(newStudent);
-				saveDb(db);
+				await updateEntireDatabase(db);
 				
 				user = { id: newStudent.id, role: 'student', email };
 				redirectPath = '/student';
@@ -88,7 +92,7 @@ export async function POST({ request, cookies }) {
 					createdAt: new Date().toISOString()
 				};
 				db.companies.push(newCompany);
-				saveDb(db);
+				await updateEntireDatabase(db);
 
 				user = { id: newCompany.id, role: 'company', email };
 				redirectPath = '/company';

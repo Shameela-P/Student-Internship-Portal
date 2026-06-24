@@ -1,9 +1,14 @@
-import { getDb } from '$lib/db';
+import { getCollection } from '$lib/db';
 import { requireRole } from '$lib/auth';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	const sessionUser = requireRole(cookies, ['company']);
-	const db = getDb();
+	const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications')
+	};
 	const company = db.companies.find(c => c.id === sessionUser.id);
 
 	// Load internships posted by this company
