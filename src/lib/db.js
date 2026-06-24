@@ -9,15 +9,20 @@ const dbRef = ref(database, '/');
 let isFirebaseSyncing = false;
 let isFirebaseInitialized = false;
 
-const DB_PATH = path.resolve('src/lib/database.json');
-const RESUMES_DIR = path.resolve('uploads/resumes');
+const isServerless = !!(process.env.VERCEL || process.env.AWS_REGION || process.env.AWS_EXECUTION_ENV);
+const DB_PATH = isServerless ? '/tmp/database.json' : path.resolve('src/lib/database.json');
+const RESUMES_DIR = isServerless ? '/tmp/resumes' : path.resolve('uploads/resumes');
 
 // Helper to ensure directories exist
-if (!fs.existsSync(path.dirname(DB_PATH))) {
-	fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-}
-if (!fs.existsSync(RESUMES_DIR)) {
-	fs.mkdirSync(RESUMES_DIR, { recursive: true });
+try {
+	if (!fs.existsSync(path.dirname(DB_PATH))) {
+		fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+	}
+	if (!fs.existsSync(RESUMES_DIR)) {
+		fs.mkdirSync(RESUMES_DIR, { recursive: true });
+	}
+} catch (e) {
+	console.warn('Could not create directories:', e.message);
 }
 
 // Hashing helper for seed data
