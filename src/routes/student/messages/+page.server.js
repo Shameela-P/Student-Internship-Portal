@@ -1,12 +1,16 @@
-import { getDb, saveDb } from '$lib/db';
+import { getCollection, updateEntireDatabase } from '$lib/db';
 import { requireRole } from '$lib/auth';
 import { fail } from '@sveltejs/kit';
 import fs from 'fs';
 import path from 'path';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	const sessionUser = requireRole(cookies, ['student']);
-	const db = getDb();
+	const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		messages: await getCollection('messages')
+	};
 	const student = db.students.find(s => s.id === sessionUser.id);
 
 	if (!db.messages) {
@@ -28,7 +32,7 @@ export function load({ cookies }) {
 		}
 	});
 	if (dbChanged) {
-		saveDb(db);
+		await updateEntireDatabase(db);
 	}
 
 	// Contacts list: All verified companies + Admin Support
@@ -54,7 +58,11 @@ export function load({ cookies }) {
 export const actions = {
 	sendMessage: async ({ request, cookies }) => {
 		const sessionUser = requireRole(cookies, ['student']);
-		const db = getDb();
+		const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		messages: await getCollection('messages')
+	};
 		const student = db.students.find(s => s.id === sessionUser.id);
 
 		const formData = await request.formData();
@@ -111,7 +119,7 @@ export const actions = {
 		};
 
 		db.messages.push(newMessage);
-		saveDb(db);
+		await updateEntireDatabase(db);
 
 		return { success: true };
 	}

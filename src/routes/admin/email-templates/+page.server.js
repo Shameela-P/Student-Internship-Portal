@@ -1,9 +1,11 @@
-import { getDb } from '$lib/db';
+import { getCollection } from '$lib/db';
 import { requireRole } from '$lib/auth';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	requireRole(cookies, ['admin']);
-	const db = getDb();
+	const db = {
+		emailTemplates: await getCollection('emailTemplates')
+	};
 	
 	// Create default templates if none exist
 	let templates = db.emailTemplates || [];

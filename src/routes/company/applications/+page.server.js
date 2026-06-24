@@ -1,11 +1,18 @@
-import { getDb, saveDb, logAction } from '$lib/db';
+import { logAction, getCollection, updateEntireDatabase } from '$lib/db';
 import { requireRole } from '$lib/auth';
 import { fail } from '@sveltejs/kit';
 import crypto from 'crypto';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	const sessionUser = requireRole(cookies, ['company']);
-	const db = getDb();
+	const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications'),
+		notifications: await getCollection('notifications'),
+		emailTemplates: await getCollection('emailTemplates')
+	};
 	const company = db.companies.find(c => c.id === sessionUser.id);
 
 	// Fetch internships posted by this company
@@ -59,7 +66,14 @@ export const actions = {
 			return fail(400, { success: false, error: 'Reference ID and Status are required' });
 		}
 
-		const db = getDb();
+		const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications'),
+		notifications: await getCollection('notifications'),
+		emailTemplates: await getCollection('emailTemplates')
+	};
 		
 		// Find application and verify owner is the company
 		const appIndex = db.applications.findIndex(a => a.id === appId);
@@ -158,7 +172,7 @@ export const actions = {
 			logAction('APPLICATION_PENDING', `Company set application (ID: ${appId}) to pending.`);
 		}
 
-		saveDb(db);
+		await updateEntireDatabase(db);
 		return { success: true };
 	},
 
@@ -171,7 +185,14 @@ export const actions = {
 			return fail(400, { success: false, error: 'Reference ID is required' });
 		}
 
-		const db = getDb();
+		const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications'),
+		notifications: await getCollection('notifications'),
+		emailTemplates: await getCollection('emailTemplates')
+	};
 		
 		const appIndex = db.applications.findIndex(a => a.id === appId);
 		if (appIndex === -1) {
@@ -196,7 +217,7 @@ export const actions = {
 			// Mark internship as completed for the student
 			application.status = 'Completed';
 
-			saveDb(db);
+			await updateEntireDatabase(db);
 			logAction('CERTIFICATE_ISSUE', `Company issued completion certificate for application (ID: ${appId}).`);
 		}
 

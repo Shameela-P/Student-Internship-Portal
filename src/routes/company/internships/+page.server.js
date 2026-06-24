@@ -1,12 +1,16 @@
-import { getDb, saveDb, logAction, DOMAINS } from '$lib/db';
+import { logAction, DOMAINS, getCollection, updateEntireDatabase } from '$lib/db';
 import { requireRole } from '$lib/auth';
 import { fail } from '@sveltejs/kit';
 import fs from 'fs';
 import path from 'path';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	const sessionUser = requireRole(cookies, ['company']);
-	const db = getDb();
+	const db = {
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications')
+	};
 	const company = db.companies.find(c => c.id === sessionUser.id);
 
 	// Load only internships created by this company
@@ -22,7 +26,11 @@ export function load({ cookies }) {
 export const actions = {
 	postInternship: async ({ request, cookies }) => {
 		const sessionUser = requireRole(cookies, ['company']);
-		const db = getDb();
+		const db = {
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications')
+	};
 		const company = db.companies.find(c => c.id === sessionUser.id);
 
 		// Account approval gate
@@ -116,7 +124,7 @@ export const actions = {
 		};
 
 		db.internships.push(newInternship);
-		saveDb(db);
+		await updateEntireDatabase(db);
 		logAction('INTERNSHIP_CREATE', `Company ${company.companyName} posted new internship: "${title}" (ID: ${newInternship.id})`);
 
 		return { success: true, message: 'Internship opportunity published successfully' };
@@ -124,7 +132,11 @@ export const actions = {
 
 	editInternship: async ({ request, cookies }) => {
 		const sessionUser = requireRole(cookies, ['company']);
-		const db = getDb();
+		const db = {
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications')
+	};
 		const company = db.companies.find(c => c.id === sessionUser.id);
 
 		const formData = await request.formData();
@@ -212,7 +224,7 @@ export const actions = {
 			bannerPath
 		};
 
-		saveDb(db);
+		await updateEntireDatabase(db);
 		logAction('INTERNSHIP_EDIT', `Company ${company.companyName} updated internship details for "${title}" (ID: ${id})`);
 
 		return { success: true, message: 'Internship details updated successfully' };
@@ -227,7 +239,11 @@ export const actions = {
 			return fail(400, { success: false, error: 'Reference ID is missing' });
 		}
 
-		const db = getDb();
+		const db = {
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications')
+	};
 		const index = db.internships.findIndex(i => i.id === id && i.companyId === sessionUser.id);
 		if (index === -1) {
 			return fail(404, { success: false, error: 'Internship listing not found' });
@@ -238,7 +254,7 @@ export const actions = {
 		db.internships.splice(index, 1);
 		db.applications = db.applications.filter(a => a.internshipId !== id);
 
-		saveDb(db);
+		await updateEntireDatabase(db);
 		logAction('INTERNSHIP_DELETE', `Company ID ${sessionUser.id} deleted internship: "${deletedTitle}" (ID: ${id})`);
 
 		return { success: true, message: 'Internship posting removed successfully' };
@@ -253,14 +269,18 @@ export const actions = {
 			return fail(400, { success: false, error: 'Reference ID is missing' });
 		}
 
-		const db = getDb();
+		const db = {
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications')
+	};
 		const index = db.internships.findIndex(i => i.id === id && i.companyId === sessionUser.id);
 		if (index === -1) {
 			return fail(404, { success: false, error: 'Internship listing not found' });
 		}
 
 		db.internships[index].status = 'Archived';
-		saveDb(db);
+		await updateEntireDatabase(db);
 		logAction('INTERNSHIP_ARCHIVE', `Company ID ${sessionUser.id} archived internship: "${db.internships[index].title}" (ID: ${id})`);
 
 		return { success: true, message: 'Internship archived successfully' };

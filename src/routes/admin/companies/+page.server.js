@@ -1,9 +1,11 @@
-import { getDb, saveDb, logAction } from '$lib/db';
+import { logAction, getCollection, updateEntireDatabase } from '$lib/db';
 import { requireRole } from '$lib/auth';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	requireRole(cookies, ['admin']);
-	const db = getDb();
+	const db = {
+		companies: await getCollection('companies')
+	};
 
 	// Reverse to show newest first
 	const companies = [...db.companies].reverse();
@@ -20,7 +22,9 @@ export const actions = {
 		const companyId = data.get('companyId');
 		const newStatus = data.get('status');
 
-		const db = getDb();
+		const db = {
+		companies: await getCollection('companies')
+	};
 		const companyIndex = db.companies.findIndex(c => c.id === companyId);
 		
 		if (companyIndex > -1) {
@@ -34,7 +38,7 @@ export const actions = {
 				db.companies[companyIndex].isSuspended = false;
 			}
 
-			saveDb(db);
+			await updateEntireDatabase(db);
 			logAction('UPDATE_COMPANY_STATUS', `Admin changed company ${companyId} status from ${oldStatus} to ${newStatus}`);
 		}
 		

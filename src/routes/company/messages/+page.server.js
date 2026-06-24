@@ -1,12 +1,18 @@
-import { getDb, saveDb } from '$lib/db';
+import { getCollection, updateEntireDatabase } from '$lib/db';
 import { requireRole } from '$lib/auth';
 import { fail } from '@sveltejs/kit';
 import fs from 'fs';
 import path from 'path';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	const sessionUser = requireRole(cookies, ['company']);
-	const db = getDb();
+	const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications'),
+		messages: await getCollection('messages')
+	};
 	const company = db.companies.find(c => c.id === sessionUser.id);
 
 	if (!db.messages) {
@@ -28,7 +34,7 @@ export function load({ cookies }) {
 		}
 	});
 	if (dbChanged) {
-		saveDb(db);
+		await updateEntireDatabase(db);
 	}
 
 	// Contacts list: Students who have applied to this company's internships + Admin Support
@@ -67,7 +73,13 @@ export function load({ cookies }) {
 export const actions = {
 	sendMessage: async ({ request, cookies }) => {
 		const sessionUser = requireRole(cookies, ['company']);
-		const db = getDb();
+		const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications'),
+		messages: await getCollection('messages')
+	};
 		const company = db.companies.find(c => c.id === sessionUser.id);
 
 		const formData = await request.formData();
@@ -124,7 +136,7 @@ export const actions = {
 		};
 
 		db.messages.push(newMessage);
-		saveDb(db);
+		await updateEntireDatabase(db);
 
 		return { success: true };
 	}

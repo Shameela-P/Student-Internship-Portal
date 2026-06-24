@@ -1,8 +1,13 @@
-import { getDb } from '$lib/db';
+import { getCollection } from '$lib/db';
 import { getSessionUser } from '$lib/auth';
 
-export function load({ cookies }) {
-	const db = getDb();
+export async function load({ cookies }) {
+	const db = {
+		students: await getCollection('students'),
+		companies: await getCollection('companies'),
+		internships: await getCollection('internships'),
+		applications: await getCollection('applications')
+	};
 	const user = getSessionUser(cookies);
 
 	// Calculate statistics

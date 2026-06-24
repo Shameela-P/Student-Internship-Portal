@@ -1,10 +1,13 @@
 import { requireRole } from '$lib/auth';
-import { getDb } from '$lib/db';
+import { getCollection } from '$lib/db';
 import { redirect } from '@sveltejs/kit';
 
-export function load({ cookies }) {
+export async function load({ cookies }) {
 	const sessionUser = requireRole(cookies, ['admin']);
-	const db = getDb();
+	const db = {
+		admins: await getCollection('admins'),
+		notifications: await getCollection('notifications')
+	};
 	const admin = db.admins.find(a => a.id === sessionUser.id);
 
 	if (!admin) {
